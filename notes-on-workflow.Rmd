@@ -10,13 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## QS Optimiation workflow  
-### Output is:   
+### Output     
 
 1. Which campaign(s) need keyword optimisation  
 2. Which keyword(s) to be optimised in that campaign  
 3. What is the priority of area of optimisation (i.e keywords, ad copy, landing page)  
 
-### Input is**:  
+### Input  
 1. .csv file downloaded from Google  
 2. budget range of campaigns to consider (i.e. >£1000, >£500, between £300-£500)  
 
@@ -53,5 +53,16 @@ knitr::opts_chunk$set(echo = TRUE)
             - Keyword optimisation  
             - Landing page optimisation (can be ignored as well)  
             
+
+### Workflow Areas of improvement  
+
+#### Reduce memory requirement  
+Remove keywords with 0 cost  
+
+### Feature backlog  
+* output can be exported  
+* user input for budget size  
+* user input for LQS/MQS spend thresholds  
+* user input for number of keywords to work on  
 
 
