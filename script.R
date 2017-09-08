@@ -1,7 +1,7 @@
 #load the keyword data into R
 program_data <- read.csv("../data/all-campaigns-keyword-data.csv", sep = ",", 
                          skip = 5, colClasses = rep("character", 57))
-program_data <- program_data[-424909,]
+program_data <- program_data[-424909,] #remove last row, called "Total"
 
 #colClasses mapped to the column names as the report was created on 06/09/2017 by rachit.kinger@jpress.co.uk
 colClasses <- c("character", #Account
@@ -79,6 +79,11 @@ library(dplyr)
 library(tidyr)
 qs_data <- tbl_df(qs_data)
 
+# filter out the 0 cost and NA quality scores on which no analysis can be done
+qs_data <- qs_data %>% 
+    filter(!is.na(Quality.score)) %>% 
+    filter(Cost != 0) 
+
 
 # define QS-buckets  #could be user defined
 LQS <- c(1,2,3)    #low quality score
@@ -90,48 +95,47 @@ qs_data <- qs_data %>%
     mutate(qs.bucket = ifelse(Quality.score %in% LQS,"Low",
                               ifelse(Quality.score %in% MQS, "Medium",
                                      ifelse(Quality.score %in% HQS, "High", NA))))
-           
 
-
-# separate accounts with monthly spend > £500.
-budget <- 500
+# separate campaigns with monthly spend > £500.
+budget.lower.limit <- 300   #default value, can be changed by user
+budget.upper.limit <- 10000 #default value, can be changed by user
 final <- qs_data %>% 
-                    group_by(Account) %>% 
-                        filter(sum(Cost) > budget)                
+                    group_by(Campaign) %>% 
+                        filter(sum(Cost) > budget.lower.limit & sum(Cost) < budget.upper.limit)                
 
 # # sort the data by Account level spend > Campaign level spend > Keyword level spend
 # t <- summarise(final, Account.Spend = sum(Cost)) #Account.Spend is a new variable
 # t <- arrange(t, desc(Spend))
 
-# get data on each Account's spend on LQS, MQS & HQS and Total Spend
-Accounts <- distinct(final, Account) #unique accounts only - this can be changed to distinct campaigns as well
+# get data on each Campaign's spend on LQS, MQS & HQS and Total Spend
+campaigns <- distinct(final, Campaign) #unique Campaigns only
 LQS <- NULL
-for(i in 1:nrow(Accounts)) {
-    x <- final %>% filter(Account == Accounts[i,]) %>% filter(qs.bucket == "Low") 
+for(i in 1:nrow(campaigns)) {
+    x <- final %>% filter(Campaign == campaigns[i,]) %>% filter(qs.bucket == "Low") 
     LQS[i] <- sum(x$Cost, na.rm = TRUE)
 }
 
 MQS <- NULL
-for(i in 1:nrow(Accounts)) {
-    x <- final %>% filter(Account == Accounts[i,]) %>% filter(qs.bucket == "Medium") 
+for(i in 1:nrow(campaigns)) {
+    x <- final %>% filter(Campaign == campaigns[i,]) %>% filter(qs.bucket == "Medium") 
     MQS[i] <- sum(x$Cost, na.rm = TRUE)
 }
 
 HQS <- NULL
-for(i in 1:nrow(Accounts)) {
-    x <- final %>% filter(Account == Accounts[i,]) %>% filter(qs.bucket == "High") 
+for(i in 1:nrow(campaigns)) {
+    x <- final %>% filter(Campaign == campaigns[i,]) %>% filter(qs.bucket == "High") 
     HQS[i] <- sum(x$Cost, na.rm = TRUE)
 }
 
 tot_spend <- NULL
-for(i in 1:nrow(Accounts)) {
-    x <- final %>% filter(Account == Accounts[i,]) 
+for(i in 1:nrow(campaigns)) {
+    x <- final %>% filter(Campaign == campaigns[i,]) 
     tot_spend[i] <- sum(x$Cost, na.rm = TRUE)
 }
 
 
 spend.compare.raw <- data.frame(
-    Account = Accounts[,1],
+    Campaign = campaigns[,1],
     LQS.Spend = LQS/tot_spend,
     MQS.Spend = MQS/tot_spend,
     HQS.Spend = HQS/tot_spend,
@@ -139,12 +143,101 @@ spend.compare.raw <- data.frame(
 )
 
 library(scales) # to convert into % format and £ format, don't forget to use as.numeric when you want to run comparisons
+spend.compare.format <- function(x) {
+         with(x[order(-x$LQS.Spend, -x$Total.Spend, -x$MQS.Spend),], #first sort in order of LQS spend levels & Total.Spend & MQS Spend
+              data.frame(
+                Campaign = Campaign,
+                LQS.Spend = scales::percent(LQS.Spend),
+                MQS.Spend = scales::percent(MQS.Spend),
+                HQS.Spend = scales::percent(HQS.Spend),
+                Total.Spend = scales::dollar_format(prefix = "£")(Total.Spend)
+    ))
+        
+}
+
 spend.compare.formatted <- with(spend.compare.raw, data.frame(
-    Account = Accounts,
+    Campaign = campaigns,
     LQS.Spend = percent(LQS.Spend),
     MQS.Spend = percent(MQS.Spend),
     HQS.Spend = percent(HQS.Spend),
     Total.Spend = dollar_format(prefix = "£")(Total.Spend)
 ))
 
+
+# Rules
+    ## Rule 1 = LQS + MQS > 30% if yes, check
+        ## Rule 1.a = LQS > 10%, if yes then perform LQS analysis, if no then perform MQS analysis
+        
+
+rule1.p1 <- spend.compare.raw %>%
+                filter(LQS.Spend + MQS.Spend > .3) %>% 
+                filter(LQS.Spend > .1 )
+
+rule1.p2 <-  spend.compare.raw %>%
+                filter(LQS.Spend + MQS.Spend > .3) %>% 
+                filter(LQS.Spend <= .1 )    
+                
+## find the main keywords for each campaign
+
+no.of.p1.campaigns.to.optimise <- nrow(rule1.p1)
+no.of.p2.campaigns.to.optimise <- nrow(rule1.p2)
+
+p1 <- list()
+for(i in 1:no.of.p1.campaigns.to.optimise) {
+    low <-  final %>% 
+        filter(Campaign == rule1.p1$Campaign[i]) %>% 
+        filter(qs.bucket == "Low") %>% 
+        select(Account, Campaign, Keyword, Cost, Quality.score, qs.bucket,Expected.click.through.rate, Ad.relevance, Landing.page.experience) %>% 
+        mutate(Cost.Prop = Cost / sum(Cost)) %>% 
+        arrange(desc(Cost.Prop)) %>% 
+        mutate(Cumulative.Cost = cumsum(Cost.Prop)) %>% 
+        top_n(5, Cost.Prop)
+    
+    med <- final %>% 
+        filter(Campaign == rule1.p1$Campaign[i]) %>% 
+        filter(qs.bucket == "Medium") %>% 
+        select(Account, Campaign, Keyword, Cost, Quality.score, qs.bucket,Expected.click.through.rate, Ad.relevance, Landing.page.experience) %>% 
+        mutate(Cost.Prop = Cost / sum(Cost)) %>% 
+        arrange(desc(Cost.Prop)) %>% 
+        mutate(Cumulative.Cost = cumsum(Cost.Prop)) %>% 
+        top_n(5, Cost.Prop)
+    
+   p1[[i]] <- list(CampaignID = rule1.p1$Campaign[i],
+                    LQS = low,
+                    MQS = med)
+}
+
+p2 <- list()
+for(i in 1:no.of.p2.campaigns.to.optimise) {
+    low <-  final %>% 
+        filter(Campaign == rule1.p2$Campaign[i]) %>% 
+        filter(qs.bucket == "Low") %>% 
+        select(Account, Campaign, Keyword, Cost, Quality.score, qs.bucket,Expected.click.through.rate, Ad.relevance, Landing.page.experience) %>% 
+        mutate(Cost.Prop = Cost / sum(Cost)) %>% 
+        arrange(desc(Cost.Prop)) %>% 
+        mutate(Cumulative.Cost = cumsum(Cost.Prop)) %>% 
+        top_n(5, Cost.Prop)
+    
+    med <- final %>% 
+        filter(Campaign == rule1.p2$Campaign[i]) %>% 
+        filter(qs.bucket == "Medium") %>% 
+        select(Account, Campaign, Keyword, Cost, Quality.score, qs.bucket,Expected.click.through.rate, Ad.relevance, Landing.page.experience) %>% 
+        mutate(Cost.Prop = Cost / sum(Cost)) %>% 
+        arrange(desc(Cost.Prop)) %>% 
+        mutate(Cumulative.Cost = cumsum(Cost.Prop)) %>% 
+        top_n(5, Cost.Prop)
+    
+    p2[[i]] <- list(CampaignID = rule1.p2$Campaign[i],
+                    LQS = low,
+                    MQS = med)
+}
+
+
+#naming the entire list
+#to find the campaign ID of relevant campaign use t.all$Campaign1$CampaignID
+names(p1) <- paste0("Campaign", seq_along(p1))
+names(p2) <- paste0("Campaign", seq_along(p2))
+final_list <- list(p1 = p1, p2 = p2)
+
+final_list$p1
 
