@@ -239,5 +239,5 @@ names(p1) <- paste0("Campaign", seq_along(p1))
 names(p2) <- paste0("Campaign", seq_along(p2))
 final_list <- list(p1 = p1, p2 = p2)
 
-final_list$p1
+
 

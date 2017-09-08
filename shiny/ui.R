@@ -1,5 +1,6 @@
 library(shiny)
 
+
 ui <- fluidPage(
     
     # App title ----
@@ -22,44 +23,36 @@ ui <- fluidPage(
             # Horizontal line ----
             tags$hr(),
             
-        
             
-        #     # Input: Checkbox if file has header ----
-        #     checkboxInput("header", "Header", TRUE),
-        #     
-        #     # Input: Select separator ----
-        #     radioButtons("sep", "Separator",
-        #                  choices = c(Comma = ",",
-        #                              Semicolon = ";",
-        #                              Tab = "\t"),
-        #                  selected = ","),
-        #     
-        #     # Input: Select quotes ----
-        #     radioButtons("quote", "Quote",
-        #                  choices = c(None = "",
-        #                              "Double Quote" = '"',
-        #                              "Single Quote" = "'"),
-        #                  selected = '"'),
-        #     
-        #     # Horizontal line ----
-        #     tags$hr(),
-        #     
-        #     # Input: Select number of rows to display ----
-        #     radioButtons("disp", "Display",
-        #                  choices = c(Head = "head",
-        #                              All = "all"),
-        #                  selected = "head")
-        #     
-        # 
-            h3("Upload .csv files only")
+        # Input: slider for budget range
+            sliderInput(inputId = "budget.range",
+                        label = "Select 30-Day Spend Range",
+                        min = 100,
+                        max = 5000,
+                        value = c(300,2000),
+                        step = 50,
+                        round = TRUE,
+                        ticks = TRUE,
+                        pre = "£",
+                        post =".00"
+                        ),
+        
+        h3("Upload .csv files only")
         ),
         
         # Main panel for displaying outputs ----
         mainPanel(
             
-            # Output: Data file ----
-            textOutput(outputId = "contents")
             
+                    # Output: Data file ----
+                    h2("Priority 1 Campaigns"),
+                    tableOutput(outputId = "p1.table"),
+                    br(),
+                    h2("Priority 2 Campaigns"),
+                    tableOutput(outputId = "p2.table")
+                    
+               
+           
         )
         
     )
