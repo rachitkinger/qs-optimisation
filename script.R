@@ -103,10 +103,6 @@ final <- qs_data %>%
                     group_by(Campaign) %>% 
                         filter(sum(Cost) > budget.lower.limit & sum(Cost) < budget.upper.limit)                
 
-# # sort the data by Account level spend > Campaign level spend > Keyword level spend
-# t <- summarise(final, Account.Spend = sum(Cost)) #Account.Spend is a new variable
-# t <- arrange(t, desc(Spend))
-
 # get data on each Campaign's spend on LQS, MQS & HQS and Total Spend
 campaigns <- distinct(final, Campaign) #unique Campaigns only
 LQS <- NULL
@@ -182,62 +178,89 @@ rule1.p2 <-  spend.compare.raw %>%
 no.of.p1.campaigns.to.optimise <- nrow(rule1.p1)
 no.of.p2.campaigns.to.optimise <- nrow(rule1.p2)
 
-p1 <- list()
+p1.low <- list(NULL)
+p1.med <- list(NULL)
+library(scales)
 for(i in 1:no.of.p1.campaigns.to.optimise) {
-    low <-  final %>% 
+    
+    p1.low[[i]] <-  final %>% 
         filter(Campaign == rule1.p1$Campaign[i]) %>% 
         filter(qs.bucket == "Low") %>% 
-        select(Account, Campaign, Keyword, Cost, Quality.score, qs.bucket,Expected.click.through.rate, Ad.relevance, Landing.page.experience) %>% 
-        mutate(Cost.Prop = Cost / sum(Cost)) %>% 
+        mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
         arrange(desc(Cost.Prop)) %>% 
-        mutate(Cumulative.Cost = cumsum(Cost.Prop)) %>% 
-        top_n(5, Cost.Prop)
+        mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p1$Total.Spend[i])) %>% 
+        top_n(5, Cost.Prop) %>% 
+        mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+        mutate(Priority = "Prority1") %>% 
+        mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p1$Total.Spend[i]) ) %>% 
+        select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
     
-    med <- final %>% 
+    
+    p1.med[[i]] <-  final %>% 
         filter(Campaign == rule1.p1$Campaign[i]) %>% 
         filter(qs.bucket == "Medium") %>% 
-        select(Account, Campaign, Keyword, Cost, Quality.score, qs.bucket,Expected.click.through.rate, Ad.relevance, Landing.page.experience) %>% 
-        mutate(Cost.Prop = Cost / sum(Cost)) %>% 
+        mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
         arrange(desc(Cost.Prop)) %>% 
-        mutate(Cumulative.Cost = cumsum(Cost.Prop)) %>% 
-        top_n(5, Cost.Prop)
+        mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p1$Total.Spend[i])) %>% 
+        top_n(5, Cost.Prop) %>% 
+        mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+        mutate(Priority = "Prority1") %>% 
+        mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p1$Total.Spend[i]) ) %>% 
+        select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
     
-   p1[[i]] <- list(CampaignID = rule1.p1$Campaign[i],
-                    LQS = low,
-                    MQS = med)
 }
 
-p2 <- list()
+p1_df <- NULL
+for(z in 1:length(p1.low)) {
+    p1_df <- rbind(p1_df, p1.low[[z]])
+}
+
+for(y in 1:length(p1.med)) {
+    p1_df <- rbind(p1_df, p1.med[[y]])
+}
+
+p2.low <- list(NULL)
+p2.med <- list(NULL)
 for(i in 1:no.of.p2.campaigns.to.optimise) {
-    low <-  final %>% 
+    
+    p2.low[[i]] <-  final %>% 
         filter(Campaign == rule1.p2$Campaign[i]) %>% 
         filter(qs.bucket == "Low") %>% 
-        select(Account, Campaign, Keyword, Cost, Quality.score, qs.bucket,Expected.click.through.rate, Ad.relevance, Landing.page.experience) %>% 
-        mutate(Cost.Prop = Cost / sum(Cost)) %>% 
+        mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
         arrange(desc(Cost.Prop)) %>% 
-        mutate(Cumulative.Cost = cumsum(Cost.Prop)) %>% 
-        top_n(5, Cost.Prop)
+        mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p2$Total.Spend[i])) %>% 
+        top_n(5, Cost.Prop) %>% 
+        mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+        mutate(Priority = "Prority2") %>% 
+        mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p2$Total.Spend[i]) ) %>% 
+        select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
     
-    med <- final %>% 
+    
+    p2.med[[i]] <-  final %>% 
         filter(Campaign == rule1.p2$Campaign[i]) %>% 
         filter(qs.bucket == "Medium") %>% 
-        select(Account, Campaign, Keyword, Cost, Quality.score, qs.bucket,Expected.click.through.rate, Ad.relevance, Landing.page.experience) %>% 
-        mutate(Cost.Prop = Cost / sum(Cost)) %>% 
+        mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
         arrange(desc(Cost.Prop)) %>% 
-        mutate(Cumulative.Cost = cumsum(Cost.Prop)) %>% 
-        top_n(5, Cost.Prop)
+        mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p2$Total.Spend[i])) %>% 
+        top_n(5, Cost.Prop) %>% 
+        mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+        mutate(Priority = "Prority2") %>% 
+        mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p2$Total.Spend[i]) ) %>% 
+        select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
     
-    p2[[i]] <- list(CampaignID = rule1.p2$Campaign[i],
-                    LQS = low,
-                    MQS = med)
 }
 
+p2_df <- NULL
+for(z in 1:length(p2.low)) {
+    p2_df <- rbind(p2_df, p2.low[[z]])
+}
 
-#naming the entire list
-#to find the campaign ID of relevant campaign use t.all$Campaign1$CampaignID
-names(p1) <- paste0("Campaign", seq_along(p1))
-names(p2) <- paste0("Campaign", seq_along(p2))
-final_list <- list(p1 = p1, p2 = p2)
+for(y in 1:length(p2.med)) {
+    p2_df <- rbind(p2_df, p2.med[[y]])
+}
+
+final_df <- rbind(p1_df,p2_df)
+
 
 
 
