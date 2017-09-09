@@ -57,10 +57,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Workflow Areas of improvement  
 
 #### Reduce memory requirement  
-Remove keywords with 0 cost  
+Remove keywords with 0 cost - **done**  
+Split the server level code into multiple functions  
+Use conditional formating for UI  
 
 ### Feature backlog  
-* output can be exported  
+* output can be exported **done**  
 * user input for budget size  
 * user input for LQS/MQS spend thresholds  
 * user input for number of keywords to work on  

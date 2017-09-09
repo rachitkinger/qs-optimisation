@@ -1,4 +1,9 @@
 library(shiny)
+library(dplyr)
+library(tidyr)
+library(scales)
+library(data.table)
+library(DT)
 
  server <- function(input, output) {
     options(shiny.maxRequestSize=200*1024^2) #allow 200MB files to be uploaded
@@ -7,10 +12,10 @@ library(shiny)
         
         
         withProgress(message = "Processing data..please wait  ", #for progress bar
-                     detail = "  This may take a while...",      #for progress bar
+                     detail = "...this can take a while",        #for progress bar               
                      value = 0, {                               #for progress bar
-            for (q in 1:2) {                                   #for progress bar
-            incProgress(1/2)                                   #for progress bar
+            for (q in 1:3) {                                   #for progress bar
+            incProgress(1/4)                                   #for progress bar
         req(input$file1)     
         program_data <- read.csv(input$file1$datapath,
                                  sep = ",",
@@ -91,8 +96,7 @@ library(shiny)
         qs_data <- program_data[,cols]
         
         # data wrangling
-        library(dplyr)
-        library(tidyr)
+
         qs_data <- tbl_df(qs_data)
         
         # filter out the 0 cost and NA quality scores on which no analysis can be done
@@ -158,7 +162,7 @@ library(shiny)
             Total.Spend = tot_spend
         )
         
-        library(scales) # to convert into % format and £ format, don't forget to use as.numeric when you want to run comparisons
+        
         spend.compare.format <- function(x) {
             with(x[order(-x$LQS.Spend, -x$Total.Spend, -x$MQS.Spend),], #first sort in order of LQS spend levels & Total.Spend & MQS Spend
                  data.frame(
@@ -175,33 +179,166 @@ library(shiny)
         ## Rule 1.a = LQS > 10%, if yes then perform LQS analysis, if no then perform MQS analysis
         
         
-        rule1.p1 <- spend.compare.raw %>%
+        r1.p1 <- spend.compare.raw %>%
             filter(LQS.Spend + MQS.Spend > .3) %>% 
-            filter(LQS.Spend > .1 )
+            filter(LQS.Spend > .1 ) %>% 
+            arrange(desc(LQS.Spend))
         
-        rule1.p2 <-  spend.compare.raw %>%
+        r1.p2 <-  spend.compare.raw %>%
             filter(LQS.Spend + MQS.Spend > .3) %>% 
-            filter(LQS.Spend <= .1 )    
+            filter(LQS.Spend <= .1 )  %>% 
+            arrange(desc(MQS.Spend))
         
-        rule1.p1.formatted <- spend.compare.format(rule1.p1)
-        rule1.p2.formatted <- spend.compare.format(rule1.p2)
+        r1.p1.formatted <- spend.compare.format(r1.p1)
+        r1.p2.formatted <- spend.compare.format(r1.p2)
         
+        
+        
+        
+
              }           #closing braces #for progress bar
        })               #closing braces #for progress bar
-        return(list(p1=rule1.p1.formatted, p2=rule1.p2.formatted))
+        return(list(p1.formated=r1.p1.formatted, 
+                    p2.formated=r1.p2.formatted,
+                    p1= r1.p1,
+                    p2= r1.p2))
     })     
          
      output$p1.table <- renderTable({
          my.data <- final_list()
-         return(my.data$p1)
+         return(my.data$p1.formated)
         
     })
      
      output$p2.table <- renderTable({
          my.data <- final_list()
-         return(my.data$p2)
+         return(my.data$p2.formated)
+         
+     })
+     
+     output$final.table <- DT::renderDataTable(filter = "top", DT::datatable({
+         my.data <- final_data()
+         return(my.data)
+     }))
+     
+     
+     final_data <- reactive({
+     
+         my.data <- final_list()
+         
+         withProgress(message = "Preparing Output..nearly done  ", #for progress bar
+                      value = 0, {                               #for progress bar
+                          for (q in 1:2) {                                   #for progress bar
+                              incProgress(1/2)                                   #for progress bar
+                              
+         rule1.p1 <- my.data$p1
+         rule1.p2 <- my.data$p2
+         
+         no.of.p1.campaigns.to.optimise <- nrow(rule1.p1)
+         no.of.p2.campaigns.to.optimise <- nrow(rule1.p2)
+         
+         p1.low <- list(NULL)
+         p1.med <- list(NULL)
+         library(scales)
+         for(i in 1:no.of.p1.campaigns.to.optimise) {
+             
+             p1.low[[i]] <-  final %>% 
+                 filter(Campaign == rule1.p1$Campaign[i]) %>% 
+                 filter(qs.bucket == "Low") %>% 
+                 mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
+                 arrange(desc(Cost.Prop)) %>% 
+                 mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p1$Total.Spend[i])) %>% 
+                 top_n(5, Cost.Prop) %>% 
+                 mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+                 mutate(Priority = "Prority1") %>% 
+                 mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p1$Total.Spend[i]) ) %>% 
+                 select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
+             
+             
+             p1.med[[i]] <-  final %>% 
+                 filter(Campaign == rule1.p1$Campaign[i]) %>% 
+                 filter(qs.bucket == "Medium") %>% 
+                 mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
+                 arrange(desc(Cost.Prop)) %>% 
+                 mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p1$Total.Spend[i])) %>% 
+                 top_n(5, Cost.Prop) %>% 
+                 mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+                 mutate(Priority = "Prority1") %>% 
+                 mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p1$Total.Spend[i]) ) %>% 
+                 select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
+             
+         }
+         
+         p1_df <- NULL
+         for(z in 1:length(p1.low)) {
+             p1_df <- rbind(p1_df, p1.low[[z]])
+         }
+         
+         for(y in 1:length(p1.med)) {
+             p1_df <- rbind(p1_df, p1.med[[y]])
+         }
+         
+         p2.low <- list(NULL)
+         p2.med <- list(NULL)
+         for(i in 1:no.of.p2.campaigns.to.optimise) {
+             
+             p2.low[[i]] <-  final %>% 
+                 filter(Campaign == rule1.p2$Campaign[i]) %>% 
+                 filter(qs.bucket == "Low") %>% 
+                 mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
+                 arrange(desc(Cost.Prop)) %>% 
+                 mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p2$Total.Spend[i])) %>% 
+                 top_n(5, Cost.Prop) %>% 
+                 mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+                 mutate(Priority = "Prority2") %>% 
+                 mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p2$Total.Spend[i]) ) %>% 
+                 select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
+             
+             
+             p2.med[[i]] <-  final %>% 
+                 filter(Campaign == rule1.p2$Campaign[i]) %>% 
+                 filter(qs.bucket == "Medium") %>% 
+                 mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
+                 arrange(desc(Cost.Prop)) %>% 
+                 mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p2$Total.Spend[i])) %>% 
+                 top_n(5, Cost.Prop) %>% 
+                 mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+                 mutate(Priority = "Prority2") %>% 
+                 mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p2$Total.Spend[i]) ) %>% 
+                 select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
+             
+         }
+         
+         p2_df <- NULL
+         for(z in 1:length(p2.low)) {
+             p2_df <- rbind(p2_df, p2.low[[z]])
+         }
+         
+         for(y in 1:length(p2.med)) {
+             p2_df <- rbind(p2_df, p2.med[[y]])
+         }
+         
+         final_df <- rbind(p1_df,p2_df)
+                          
+                          }}) #closing braces for progress bar
+         return(final_df)
          
      })
      
      
+     
+     output$qs_download <- downloadHandler(
+         
+         filename = function() {
+             paste("qs-optimisation-", Sys.Date(), ".csv", sep="")
+         },
+         content = function(file) {
+             data.download <- final_data()
+             write.csv(data.download, file)
+         }
+     )
+     
+     
  }
+ 
+ 
