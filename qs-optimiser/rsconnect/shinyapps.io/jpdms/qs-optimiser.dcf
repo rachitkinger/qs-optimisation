@@ -5,6 +5,6 @@ account: jpdms
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 212700
-bundleId: 974667
+bundleId: 978047
 url: https://jpdms.shinyapps.io/qs-optimiser/
-when: 1505002025.0679
+when: 1505210860.09928
