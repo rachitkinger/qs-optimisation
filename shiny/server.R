@@ -111,12 +111,12 @@ process_data <- function(df) {
 
 # budget is called by budget_range (inside servert). It updates global_data_with_budget
 # and returns its value inside the server function
-budget <- function(lower = 300, upper = 5000, df) {
+budget <- function(slider = c(300,5000), df) {
     with_budget <- df %>% 
         group_by(Campaign) %>% 
-        filter(sum(Cost) > lower & sum(Cost) < upper)    
-   
-        global_data_with_budget <- with_budget
+        filter(sum(Cost) > slider[1] & sum(Cost) < slider[2])    
+    
+    global_data_with_budget <- with_budget
     return(global_data_with_budget)
     
 }
@@ -206,204 +206,206 @@ p1p2data <- function(df) {
 #updates the global_final_dt
 create_final_data <- function(list) { 
     if(is.null(list)) { return()}
-                         rule1.p1 <- list$p1
-                         rule1.p2 <- list$p2
-                         with_budget <- list$alldata
-                         
-                         no.of.p1.campaigns.to.optimise <- nrow(rule1.p1)
-                         no.of.p2.campaigns.to.optimise <- nrow(rule1.p2)
-                         
-                         p1.low <- list(NULL)
-                         p1.med <- list(NULL)
-                         library(scales)
-                         for(i in 1:no.of.p1.campaigns.to.optimise) {
-                             
-                             p1.low[[i]] <-  with_budget %>% 
-                                 filter(Campaign == rule1.p1$Campaign[i]) %>% 
-                                 filter(qs.bucket == "Low") %>% 
-                                 mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
-                                 arrange(desc(Cost.Prop)) %>% 
-                                 mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p1$Total.Spend[i])) %>% 
-                                 top_n(5, Cost.Prop) %>% 
-                                 mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
-                                 mutate(Priority = "Priority1") %>% 
-                                 mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p1$Total.Spend[i]) ) %>% 
-                                 select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
-                             
-                             
-                             p1.med[[i]] <-  with_budget %>% 
-                                 filter(Campaign == rule1.p1$Campaign[i]) %>% 
-                                 filter(qs.bucket == "Medium") %>% 
-                                 mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
-                                 arrange(desc(Cost.Prop)) %>% 
-                                 mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p1$Total.Spend[i])) %>% 
-                                 top_n(5, Cost.Prop) %>% 
-                                 mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
-                                 mutate(Priority = "Priority1") %>% 
-                                 mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p1$Total.Spend[i]) ) %>% 
-                                 select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
-                             
-                         }
-                         
-                         p1_df <- NULL
-                         for(z in 1:length(p1.low)) {
-                             p1_df <- rbind(p1_df, p1.low[[z]])
-                         }
-                         
-                         for(y in 1:length(p1.med)) {
-                             p1_df <- rbind(p1_df, p1.med[[y]])
-                         }
-                         
-                         p2.low <- list(NULL)
-                         p2.med <- list(NULL)
-                         for(i in 1:no.of.p2.campaigns.to.optimise) {
-                             
-                             p2.low[[i]] <-  with_budget %>% 
-                                 filter(Campaign == rule1.p2$Campaign[i]) %>% 
-                                 filter(qs.bucket == "Low") %>% 
-                                 mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
-                                 arrange(desc(Cost.Prop)) %>% 
-                                 mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p2$Total.Spend[i])) %>% 
-                                 top_n(5, Cost.Prop) %>% 
-                                 mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
-                                 mutate(Priority = "Priority2") %>% 
-                                 mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p2$Total.Spend[i]) ) %>% 
-                                 select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
-                             
-                             
-                             p2.med[[i]] <-  with_budget %>% 
-                                 filter(Campaign == rule1.p2$Campaign[i]) %>% 
-                                 filter(qs.bucket == "Medium") %>% 
-                                 mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
-                                 arrange(desc(Cost.Prop)) %>% 
-                                 mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p2$Total.Spend[i])) %>% 
-                                 top_n(5, Cost.Prop) %>% 
-                                 mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
-                                 mutate(Priority = "Priority2") %>% 
-                                 mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p2$Total.Spend[i]) ) %>% 
-                                 select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
-                             
-                         }
-                         
-                         p2_df <- NULL
-                         for(z in 1:length(p2.low)) {
-                             p2_df <- rbind(p2_df, p2.low[[z]])
-                         }
-                         
-                         for(y in 1:length(p2.med)) {
-                             p2_df <- rbind(p2_df, p2.med[[y]])
-                         }
-                         
-                         final_df <- rbind(p1_df,p2_df)
-                         
-                     return(final_df)
+    rule1.p1 <- list$p1
+    rule1.p2 <- list$p2
+    with_budget <- list$alldata
+    
+    no.of.p1.campaigns.to.optimise <- nrow(rule1.p1)
+    no.of.p2.campaigns.to.optimise <- nrow(rule1.p2)
+    
+    p1.low <- list(NULL)
+    p1.med <- list(NULL)
+    library(scales)
+    for(i in 1:no.of.p1.campaigns.to.optimise) {
+        
+        p1.low[[i]] <-  with_budget %>% 
+            filter(Campaign == rule1.p1$Campaign[i]) %>% 
+            filter(qs.bucket == "Low") %>% 
+            mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
+            arrange(desc(Cost.Prop)) %>% 
+            mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p1$Total.Spend[i])) %>% 
+            top_n(5, Cost.Prop) %>% 
+            mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+            mutate(Priority = "Priority1") %>% 
+            mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p1$Total.Spend[i]) ) %>% 
+            select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
+        
+        
+        p1.med[[i]] <-  with_budget %>% 
+            filter(Campaign == rule1.p1$Campaign[i]) %>% 
+            filter(qs.bucket == "Medium") %>% 
+            mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
+            arrange(desc(Cost.Prop)) %>% 
+            mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p1$Total.Spend[i])) %>% 
+            top_n(5, Cost.Prop) %>% 
+            mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+            mutate(Priority = "Priority1") %>% 
+            mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p1$Total.Spend[i]) ) %>% 
+            select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
+        
+    }
+    
+    p1_df <- NULL
+    for(z in 1:length(p1.low)) {
+        p1_df <- rbind(p1_df, p1.low[[z]])
+    }
+    
+    for(y in 1:length(p1.med)) {
+        p1_df <- rbind(p1_df, p1.med[[y]])
+    }
+    
+    p2.low <- list(NULL)
+    p2.med <- list(NULL)
+    for(i in 1:no.of.p2.campaigns.to.optimise) {
+        
+        p2.low[[i]] <-  with_budget %>% 
+            filter(Campaign == rule1.p2$Campaign[i]) %>% 
+            filter(qs.bucket == "Low") %>% 
+            mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
+            arrange(desc(Cost.Prop)) %>% 
+            mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p2$Total.Spend[i])) %>% 
+            top_n(5, Cost.Prop) %>% 
+            mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+            mutate(Priority = "Priority2") %>% 
+            mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p2$Total.Spend[i]) ) %>% 
+            select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
+        
+        
+        p2.med[[i]] <-  with_budget %>% 
+            filter(Campaign == rule1.p2$Campaign[i]) %>% 
+            filter(qs.bucket == "Medium") %>% 
+            mutate(Cost.Prop = (Cost / sum(Cost))) %>% 
+            arrange(desc(Cost.Prop)) %>% 
+            mutate(Proportion.Of.Campaign.Cost = percent(Cost / rule1.p2$Total.Spend[i])) %>% 
+            top_n(5, Cost.Prop) %>% 
+            mutate(Proportion.Of.QS.Bucket = percent(Cost.Prop)) %>%
+            mutate(Priority = "Priority2") %>% 
+            mutate(Campaign.Spend = dollar_format(prefix = "£")(rule1.p2$Total.Spend[i]) ) %>% 
+            select(Priority, Campaign, Keyword, qs.bucket, Expected.click.through.rate, Ad.relevance, Landing.page.experience, Proportion.Of.QS.Bucket, Proportion.Of.Campaign.Cost, Campaign.Spend)
+        
+    }
+    
+    p2_df <- NULL
+    for(z in 1:length(p2.low)) {
+        p2_df <- rbind(p2_df, p2.low[[z]])
+    }
+    
+    for(y in 1:length(p2.med)) {
+        p2_df <- rbind(p2_df, p2.med[[y]])
+    }
+    
+    final_df <- rbind(p1_df,p2_df)
+    
+    return(final_df)
     
 }
 
 
- server <- function(input, output, session) {
-   
-     options(shiny.maxRequestSize=200*1024^2) #allow 200MB files to be uploaded
+server <- function(input, output, session) {
     
-# process_upload is a reactive function that calls process_data (global function)
-     process_upload <- reactive({
+    options(shiny.maxRequestSize=200*1024^2) #allow 200MB files to be uploaded
+    
+    # process_upload is a reactive function that calls process_data (global function)
+    process_upload <- reactive({
         
-        
-         progress <- Progress$new(session, min = 1, max = 4)
-         on.exit(progress$close())
-         req(input$file1)
-         progress$set(message = "Cleaning data",
-                      value = 2)
+        global_data <<- NULL
+        global_data_with_budget <<- NULL
+        global_final_list <<- NULL
+        global_final_dt <<- NULL
+        progress <- Progress$new(session, min = 1, max = 4)
+        on.exit(progress$close())
+        req(input$file1)
+        progress$set(message = "Cleaning data",
+                     value = 2)
         user_upload <- read.csv(input$file1$datapath,
-                                 sep = ",",
-                                 skip = 5,
-                                 colClasses = rep("character", 57))
+                                sep = ",",
+                                skip = 5,
+                                colClasses = rep("character", 57))
         user_upload <- user_upload[-424909,] # remove last row, called "Total"
         
         return(process_data(user_upload))
-   })
-   
-# budget_range is a reactive function that calls budget (global function)
-      budget_range <- reactive({
-          data_for_budget <- process_upload()
-          progress <- Progress$new(session, min = 1, max = 4)
-          on.exit(progress$close())
-          progress$set(message = "Processing data",
-                       detail = "...mapping budgets",
-                       value = 2)
-              return(budget(lower = input$budget.range[1], upper = input$budget.range[2], df = data_for_budget))
-   })
-   
-# this call updates global_final_list
-    update_global_final_list <- function() {
-           
+    })
+    
+    # budget_range is a reactive function that calls budget (global function)
+    
+        budget_range <- reactive({
+            data_for_budget <- process_upload()
+            progress <- Progress$new(session, min = 1, max = 4)
+            on.exit(progress$close())
+            progress$set(message = "Processing data",
+                         detail = "...mapping budgets",
+                         value = 2)
+            return(budget(slider = input$budget.range, df = data_for_budget))
+        })
+        
+        
+        # this call updates global_final_list
+        update_global_final_list <- function() {
             data <- budget_range()
-           progress <- Progress$new(session, min = 1, max = 4)
-           on.exit(progress$close())
-           progress$set(message = "Processing data",
-                        detail = "...determinig priorities",
-                        value = 3)
+            progress <- Progress$new(session, min = 1, max = 4)
+            on.exit(progress$close())
+            progress$set(message = "Processing data",
+                         detail = "...determinig priorities",
+                         value = 3)
             global_final_list <<- p1p2data(data)
             return(global_final_list)
-          
-    }
-   
-# update global_final_dt
-   update_global_final_dt <- function() {
-       
-    my_data <- update_global_final_list()
-    progress <- Progress$new(session, min = 1, max = 4)
-    on.exit(progress$close())
-    progress$set(message = "Done Processing!",
-                 detail = "...creating final output",
-                 value = 3)
-    global_final_dt <<- create_final_data(my_data)
-    return(global_final_dt)
-    }    
-    
-      
-     output$p1.table <- renderTable({
-        #my_p1 <- update_global_final_list()
-         my_p1 <- global_final_list
-         if(is.null(my_p1)) {
-             my_p1 <- update_global_final_list()
-             } 
-         return(my_p1$p1.formated)
+            
+        }
         
-     })
-      
-     
-     output$p2.table <- renderTable({
-         #my_p2 <- update_global_final_list()
-         my_p2 <- global_final_list
-         if(is.null(my_p2)) {
-             my_p2 <- update_global_final_list()
-           } 
-         return(my_p2$p2.formated)
-    })
-     
-     output$final.table <- DT::renderDataTable(filter = "top", DT::datatable({
-        my_dt <- global_final_dt
-        if(is.null(my_dt)) {
-            my_dt <- update_global_final_dt()
-        } 
-         return(my_dt)
-     }))
-     
-     
-  output$qs_download <- downloadHandler(
-         filename = function() {
-             paste("qs-optimisation-", Sys.Date(), ".csv", sep="")
-         },
-         content = function(file) {
-             my_dt <- global_final_dt
-             if(is.null(my_dt)) {
-                 my_dt <- update_global_final_dt()
-             } 
-             write.csv(my_dt, file)
-         }
-     )
-    
- }
+        # update global_final_dt
+        update_global_final_dt <- function() {
+            my_data <- update_global_final_list()
+            progress <- Progress$new(session, min = 1, max = 4)
+            on.exit(progress$close())
+            progress$set(message = "Done Processing!",
+                         detail = "...creating final output",
+                         value = 3)
+            global_final_dt <<- create_final_data(my_data)
+            return(global_final_dt)
+        }    
+        
+        
+        output$p1.table <- renderTable({
+            #my_p1 <- update_global_final_list()
+            my_p1 <- global_final_list
+            if(is.null(my_p1)) {
+                my_p1 <- update_global_final_list()
+            } 
+            return(my_p1$p1.formated)
+            
+        })
+        
+        
+        output$p2.table <- renderTable({
+            #my_p2 <- update_global_final_list()
+            my_p2 <- global_final_list
+            if(is.null(my_p2)) {
+                my_p2 <- update_global_final_list()
+            } 
+            return(my_p2$p2.formated)
+        })
+        
+        output$final.table <- DT::renderDataTable(filter = "top", DT::datatable({
+            my_dt <- global_final_dt
+            if(is.null(my_dt)) {
+                my_dt <- update_global_final_dt()
+            } 
+            return(my_dt)
+        }))
+        
+        
+        output$qs_download <- downloadHandler(
+            filename = function() {
+                paste("qs-optimisation-", Sys.Date(), ".csv", sep="")
+            },
+            content = function(file) {
+                my_dt <- global_final_dt
+                if(is.null(my_dt)) {
+                    my_dt <- update_global_final_dt()
+                } 
+                write.csv(my_dt, file)
+            }
+        )
  
- 
+}
+
