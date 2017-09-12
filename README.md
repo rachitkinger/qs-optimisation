@@ -15,8 +15,6 @@ Currently, this app only works with a specific file type. The file type is avail
 Name: `all-campaigns-keyword-data`  
 Type: `Keyword performance`  
 Format: `.csv`  
-Creation date: `6 Sep 2017`  
-Created by: `rachit.kinger@jpress.co.uk`  
 
 **Step 1** Download the file and save it to your desktop  
 **Step 2** Open the app - [click here](https://jpdms.shinyapps.io/qs-optimiser/)  
