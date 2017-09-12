@@ -55,7 +55,7 @@ The analysis is available on the screen. As soon as the output is ready, the scr
 
 ### Support or Contact
 
-Having trouble with QS Optimisation? Check out our [documentation](https://rachitkinger.github.io/qs-optimisation/faq.md) or reach out to  
+Having trouble with QS Optimisation? Check out our [documentation](https://rachitkinger.github.io/qs-optimisation/faq.html) or reach out to  
 **Shara** @ shara.harland@jpress.co.uk or **Rachit** @ rachit.kinger@jpress.co.uk  
 
 *The page is owned and operated by DMS product team.*
