@@ -19,7 +19,7 @@ Creation date: `6 Sep 2017`
 Created by: `rachit.kinger@jpress.co.uk`  
 
 **Step 1** Download the file and save it to your desktop  
-**Step 2** Open the app by going to this URL (yet to finalised)  
+**Step 2** Open the app - [click here](https://jpdms.shinyapps.io/qs-optimiser/)  
 **Step 3** Upload the file as it is  
 Wait for some time. Processing the file can take upto a minute. (we are working on how to reduce that time, please bear with us)  
 
