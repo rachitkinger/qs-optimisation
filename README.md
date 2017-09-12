@@ -1,6 +1,7 @@
+
 ## QS Optimisation Project Page  
 
-This page contains the latest version of the optimisation webapp and the Excel macro. 
+This page contains the latest version of the [optimisation webapp](https://jpdms.shinyapps.io/qs-optimiser/). 
 
 ### What the project aims to achieve  
 1. To reduce manual effort in identifying which campaigns need optimisation to improve campaign's quality score  
