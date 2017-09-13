@@ -25,8 +25,9 @@ Wait for some time. Processing the file can take upto a minute. (we are working 
 The analysis is available on the screen. As soon as the output is ready, the screen will be updated with three tables.  
 
 **Table 1** contains the names of Accounts and Campaigns that are top priority for optimisation.  
-**Table 2** contains the names of Accounts and Campaigns that are top priority for optimisation.  
+**Table 2** contains the names of Accounts and Campaigns that are second highest in priority for optimisation.  
 **Table 3** contains full details on keywords and what the problem areas are. (this table can be downloaded as a `.csv` file. Just click on the *Export Analysis* button)  
+
 
 ##### What do the different columns mean?  
 `Priority`  This is self-evident. Priority is decided upon the proportion of campaign spend that is going towards low quality keywords. The higher the proportion, the higher the priority  
